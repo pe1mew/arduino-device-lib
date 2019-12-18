@@ -1,7 +1,7 @@
 // Copyright © 2017 The Things Network
 // Use of this source code is governed by the MIT license that can be found in the LICENSE file.
 
-#include "TheThingsNetwork.h"
+#include "RN2483Network.h"
 
 #define debugPrintLn(...)                \
   {                                      \
@@ -14,8 +14,8 @@
       debugStream->print(__VA_ARGS__); \
   }
 
-#define TTN_HEX_CHAR_TO_NIBBLE(c) ((c >= 'A') ? (c - 'A' + 0x0A) : (c - '0'))
-#define TTN_HEX_PAIR_TO_BYTE(h, l) ((TTN_HEX_CHAR_TO_NIBBLE(h) << 4) + TTN_HEX_CHAR_TO_NIBBLE(l))
+#define LORAWAN_HEX_CHAR_TO_NIBBLE(c) ((c >= 'A') ? (c - 'A' + 0x0A) : (c - '0'))
+#define LORAWAN_HEX_PAIR_TO_BYTE(h, l) ((LORAWAN_HEX_CHAR_TO_NIBBLE(h) << 4) + LORAWAN_HEX_CHAR_TO_NIBBLE(l))
 
 const char ok[] PROGMEM = "ok";
 const char on[] PROGMEM = "on";
@@ -287,7 +287,7 @@ uint8_t receivedPort(const char *s)
   return port;
 }
 
-TheThingsNetwork::TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn_fp_t fp, uint8_t sf, uint8_t fsb)
+RN2483Network::RN2483Network(Stream &modemStream, Stream &debugStream, ttn_fp_t fp, uint8_t sf, uint8_t fsb)
 {
   this->debugStream = &debugStream;
   this->modemStream = &modemStream;
@@ -297,17 +297,17 @@ TheThingsNetwork::TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn
   this->fsb = fsb;
 }
 
-size_t TheThingsNetwork::getAppEui(char *buffer, size_t size)
+size_t RN2483Network::getAppEui(char *buffer, size_t size)
 {
   return readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_APPEUI, buffer, size);
 }
 
-size_t TheThingsNetwork::getHardwareEui(char *buffer, size_t size)
+size_t RN2483Network::getHardwareEui(char *buffer, size_t size)
 {
   return readResponse(SYS_TABLE, SYS_TABLE, SYS_GET_HWEUI, buffer, size);
 }
 
-uint16_t TheThingsNetwork::getVDD()
+uint16_t RN2483Network::getVDD()
 {
   if (readResponse(SYS_TABLE, SYS_TABLE, SYS_GET_VDD, buffer, sizeof(buffer)) > 0) {
     return atoi(buffer);
@@ -315,7 +315,7 @@ uint16_t TheThingsNetwork::getVDD()
   return 0;
 }
 
-void TheThingsNetwork::debugPrintIndex(uint8_t index, const char *value)
+void RN2483Network::debugPrintIndex(uint8_t index, const char *value)
 {
   char message[100];
   strcpy_P(message, (char *)pgm_read_word(&(show_table[index])));
@@ -326,7 +326,7 @@ void TheThingsNetwork::debugPrintIndex(uint8_t index, const char *value)
   }
 }
 
-void TheThingsNetwork::debugPrintMessage(uint8_t type, uint8_t index, const char *value)
+void RN2483Network::debugPrintMessage(uint8_t type, uint8_t index, const char *value)
 {
   char message[100];
   switch (type)
@@ -349,7 +349,7 @@ void TheThingsNetwork::debugPrintMessage(uint8_t type, uint8_t index, const char
   }
 }
 
-void TheThingsNetwork::clearReadBuffer()
+void RN2483Network::clearReadBuffer()
 {
   while (modemStream->available())
   {
@@ -357,7 +357,7 @@ void TheThingsNetwork::clearReadBuffer()
   }
 }
 
-size_t TheThingsNetwork::readLine(char *buffer, size_t size, uint8_t attempts)
+size_t RN2483Network::readLine(char *buffer, size_t size, uint8_t attempts)
 {
   size_t read = 0;
   while (!read && attempts--)
@@ -374,7 +374,7 @@ size_t TheThingsNetwork::readLine(char *buffer, size_t size, uint8_t attempts)
   return read;
 }
 
-size_t TheThingsNetwork::readResponse(uint8_t prefixTable, uint8_t index, char *buffer, size_t size)
+size_t RN2483Network::readResponse(uint8_t prefixTable, uint8_t index, char *buffer, size_t size)
 {
   clearReadBuffer();
   sendCommand(prefixTable, 0, true, false);
@@ -383,7 +383,7 @@ size_t TheThingsNetwork::readResponse(uint8_t prefixTable, uint8_t index, char *
   return readLine(buffer, size);
 }
 
-size_t TheThingsNetwork::readResponse(uint8_t prefixTable, uint8_t indexTable, uint8_t index, char *buffer, size_t size)
+size_t RN2483Network::readResponse(uint8_t prefixTable, uint8_t indexTable, uint8_t index, char *buffer, size_t size)
 {
   clearReadBuffer();
   sendCommand(prefixTable, 0, true, false);
@@ -393,7 +393,7 @@ size_t TheThingsNetwork::readResponse(uint8_t prefixTable, uint8_t indexTable, u
   return readLine(buffer, size);
 }
 
-void TheThingsNetwork::autoBaud()
+void RN2483Network::autoBaud()
 {
   // Courtesy of @jpmeijers
   modemStream->setTimeout(2000);
@@ -417,7 +417,7 @@ void TheThingsNetwork::autoBaud()
   baudDetermined = true;
 }
 
-void TheThingsNetwork::reset(bool adr)
+void RN2483Network::reset(bool adr)
 {
   autoBaud();
   readResponse(SYS_TABLE, SYS_RESET, buffer, sizeof(buffer));
@@ -445,13 +445,13 @@ void TheThingsNetwork::reset(bool adr)
   this->needsHardReset = false;
 }
 
-void TheThingsNetwork::resetHard(uint8_t resetPin){
+void RN2483Network::resetHard(uint8_t resetPin){
   digitalWrite(resetPin, LOW);
   delay(1000);
   digitalWrite(resetPin, HIGH);
 }
 
-void TheThingsNetwork::saveState()
+void RN2483Network::saveState()
 {
   debugPrint(SENDING);
   sendCommand(MAC_TABLE, MAC_PREFIX, true);
@@ -461,12 +461,12 @@ void TheThingsNetwork::saveState()
   waitForOk();
 }
 
-void TheThingsNetwork::onMessage(void (*cb)(const uint8_t *payload, size_t size, port_t port))
+void RN2483Network::onMessage(void (*cb)(const uint8_t *payload, size_t size, port_t port))
 {
   messageCallback = cb;
 }
 
-bool TheThingsNetwork::personalize(const char *devAddr, const char *nwkSKey, const char *appSKey)
+bool RN2483Network::personalize(const char *devAddr, const char *nwkSKey, const char *appSKey)
 {
   reset(adr);
   if (strlen(devAddr) != 8 || strlen(appSKey) != 32 || strlen(nwkSKey) != 32)
@@ -480,7 +480,7 @@ bool TheThingsNetwork::personalize(const char *devAddr, const char *nwkSKey, con
   return personalize();
 }
 
-bool TheThingsNetwork::personalize()
+bool RN2483Network::personalize()
 {
   configureChannels(fsb);
   setSF(sf);
@@ -498,7 +498,7 @@ bool TheThingsNetwork::personalize()
   return true;
 }
 
-bool TheThingsNetwork::provision(const char *appEui, const char *appKey)
+bool RN2483Network::provision(const char *appEui, const char *appKey)
 {
   reset(adr);
   if (strlen(appEui) != 16 || strlen(appKey) != 32)
@@ -514,7 +514,7 @@ bool TheThingsNetwork::provision(const char *appEui, const char *appKey)
   return true;
 }
 
-bool TheThingsNetwork::join(int8_t retries, uint32_t retryDelay)
+bool RN2483Network::join(int8_t retries, uint32_t retryDelay)
 {
   int8_t attempts = 0;
   configureChannels(fsb);
@@ -545,12 +545,12 @@ bool TheThingsNetwork::join(int8_t retries, uint32_t retryDelay)
   return false;
 }
 
-bool TheThingsNetwork::join(const char *appEui, const char *appKey, int8_t retries, uint32_t retryDelay)
+bool RN2483Network::join(const char *appEui, const char *appKey, int8_t retries, uint32_t retryDelay)
 {
   return provision(appEui, appKey) && join(retries, retryDelay);
 }
 
-ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length, port_t port, bool confirm, uint8_t sf)
+ttn_response_t RN2483Network::sendBytes(const uint8_t *payload, size_t length, port_t port, bool confirm, uint8_t sf)
 {
   if (sf != 0)
   {
@@ -561,7 +561,7 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
   if (!sendPayload(mode, port, (uint8_t *)payload, length))
   {
     debugPrintMessage(ERR_MESSAGE, ERR_SEND_COMMAND_FAILED);
-    return TTN_ERROR_SEND_COMMAND_FAILED;
+    return LORAWAN_ERROR_SEND_COMMAND_FAILED;
   }
 
   readLine(buffer, sizeof(buffer));
@@ -569,7 +569,7 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
   if (pgmstrcmp(buffer, CMP_MAC_TX_OK) == 0)
   {
     debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
-    return TTN_SUCCESSFUL_TRANSMISSION;
+    return LORAWAN_SUCCESSFUL_TRANSMISSION;
   }
 
   if (pgmstrcmp(buffer, CMP_MAC_RX) == 0)
@@ -582,7 +582,7 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
       uint8_t downlink[downlinkLength];
       for (size_t i = 0, d = 0; i < downlinkLength; i++, d += 2)
       {
-        downlink[i] = TTN_HEX_PAIR_TO_BYTE(data[d], data[d + 1]);
+        downlink[i] = LORAWAN_HEX_PAIR_TO_BYTE(data[d], data[d + 1]);
       }
       debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION_RECEIVED, data);
       if (messageCallback)
@@ -594,20 +594,20 @@ ttn_response_t TheThingsNetwork::sendBytes(const uint8_t *payload, size_t length
     {
       debugPrintMessage(SUCCESS_MESSAGE, SCS_SUCCESSFUL_TRANSMISSION);
     }
-    return TTN_SUCCESSFUL_RECEIVE;
+    return LORAWAN_SUCCESSFUL_RECEIVE;
   }
 
   debugPrintMessage(ERR_MESSAGE, ERR_UNEXPECTED_RESPONSE, buffer);
-  return TTN_ERROR_UNEXPECTED_RESPONSE;
+  return LORAWAN_ERROR_UNEXPECTED_RESPONSE;
 }
 
-ttn_response_t TheThingsNetwork::poll(port_t port, bool confirm)
+ttn_response_t RN2483Network::poll(port_t port, bool confirm)
 {
   uint8_t payload[] = {0x00};
   return sendBytes(payload, 1, port, confirm);
 }
 
-void TheThingsNetwork::showStatus()
+void RN2483Network::showStatus()
 {
   readResponse(SYS_TABLE, SYS_TABLE, SYS_GET_HWEUI, buffer, sizeof(buffer));
   debugPrintIndex(SHOW_EUI, buffer);
@@ -625,7 +625,7 @@ void TheThingsNetwork::showStatus()
   debugPrintIndex(SHOW_RX_DELAY_2, buffer);
 }
 
-void TheThingsNetwork::configureEU868()
+void RN2483Network::configureEU868()
 {
   sendMacSet(MAC_RX2, "3 869525000");
   sendChSet(MAC_CHANNEL_DRRANGE, 1, "0 6");
@@ -645,10 +645,10 @@ void TheThingsNetwork::configureEU868()
       freq = freq + 200000;
     }
   }
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_EU868);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_EU868);
 }
 
-void TheThingsNetwork::configureUS915(uint8_t fsb)
+void RN2483Network::configureUS915(uint8_t fsb)
 {
   uint8_t ch;
   uint8_t chLow = fsb > 0 ? (fsb - 1) * 8 : 0;
@@ -669,10 +669,10 @@ void TheThingsNetwork::configureUS915(uint8_t fsb)
       sendChSet(MAC_CHANNEL_STATUS, ch, "off");
     }
   }
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_US915);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_US915);
 }
 
-void TheThingsNetwork::configureAU915(uint8_t fsb)
+void RN2483Network::configureAU915(uint8_t fsb)
 {
   uint8_t ch;
   uint8_t chLow = fsb > 0 ? (fsb - 1) * 8 : 0;
@@ -693,10 +693,10 @@ void TheThingsNetwork::configureAU915(uint8_t fsb)
       sendChSet(MAC_CHANNEL_STATUS, ch, "off");
     }
   }
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_AU915);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_AU915);
 }
 
-void TheThingsNetwork::configureAS920_923()
+void RN2483Network::configureAS920_923()
 {
   /* RN2903AS 1.0.3rc9 defaults
    * CH0 = 923.2MHz
@@ -726,10 +726,10 @@ void TheThingsNetwork::configureAS920_923()
   //sendChSet(MAC_CHANNEL_DRRANGE, 8, "6 6");
   //sendChSet(MAC_CHANNEL_STATUS, 8, "on");
   // TODO: Add FSK channel on 921800000
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_AS920_923);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_AS920_923);
 }
 
-void TheThingsNetwork::configureAS923_925()
+void RN2483Network::configureAS923_925()
 {
   /* RN2903AS 1.0.3rc9 defaults
    * CH0 = 923.2MHz
@@ -759,10 +759,10 @@ void TheThingsNetwork::configureAS923_925()
   //sendChSet(MAC_CHANNEL_DRRANGE, 8, "6 6");
   //sendChSet(MAC_CHANNEL_STATUS, 8, "on");
   // TODO: Add FSK channel on 924800000
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_AS923_925);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_AS923_925);
 }
 
-void TheThingsNetwork::configureKR920_923()
+void RN2483Network::configureKR920_923()
 {
   sendMacSet(MAC_ADR, "off"); // TODO: remove when ADR is implemented for this plan
   sendMacSet(MAC_RX2, "0 921900000"); // KR still uses SF12 for now. Might change to SF9 later.
@@ -783,10 +783,10 @@ void TheThingsNetwork::configureKR920_923()
     sendChSet(MAC_CHANNEL_STATUS, ch, "on");
     freq = freq + 200000;
   }
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_KR920_923);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_KR920_923);
 }
 
-void TheThingsNetwork::configureIN865_867()
+void RN2483Network::configureIN865_867()
 {
   sendMacSet(MAC_ADR, "off"); // TODO: remove when ADR is implemented for this plan
   sendMacSet(MAC_RX2, "2 866550000"); // SF10
@@ -814,10 +814,10 @@ void TheThingsNetwork::configureIN865_867()
   sendChSet(MAC_CHANNEL_DRRANGE, 5, "0 5");
   sendChSet(MAC_CHANNEL_STATUS, 5, "on");
 
-  sendMacSet(MAC_PWRIDX, TTN_PWRIDX_IN865_867);
+  sendMacSet(MAC_PWRIDX, LORAWAN_PWRIDX_IN865_867);
 }
 
-void TheThingsNetwork::configureChannels(uint8_t fsb)
+void RN2483Network::configureChannels(uint8_t fsb)
 {
   switch (fp)
   {
@@ -846,10 +846,10 @@ void TheThingsNetwork::configureChannels(uint8_t fsb)
     debugPrintMessage(ERR_MESSAGE, ERR_INVALID_FP);
     break;
   }
-  sendMacSet(MAC_RETX, TTN_RETX);
+  sendMacSet(MAC_RETX, LORAWAN_RETX);
 }
 
-bool TheThingsNetwork::setSF(uint8_t sf)
+bool RN2483Network::setSF(uint8_t sf)
 {
   uint8_t dr;
   switch (fp)
@@ -872,7 +872,7 @@ bool TheThingsNetwork::setSF(uint8_t sf)
   return sendMacSet(MAC_DR, s);
 }
 
-void TheThingsNetwork::sendCommand(uint8_t table, uint8_t index, bool appendSpace, bool print)
+void RN2483Network::sendCommand(uint8_t table, uint8_t index, bool appendSpace, bool print)
 {
   char command[100];
   switch (table)
@@ -913,7 +913,7 @@ void TheThingsNetwork::sendCommand(uint8_t table, uint8_t index, bool appendSpac
   }
 }
 
-bool TheThingsNetwork::sendMacSet(uint8_t index, const char *value)
+bool RN2483Network::sendMacSet(uint8_t index, const char *value)
 {
   clearReadBuffer();
   debugPrint(SENDING);
@@ -926,7 +926,7 @@ bool TheThingsNetwork::sendMacSet(uint8_t index, const char *value)
   return waitForOk();
 }
 
-bool TheThingsNetwork::waitForOk()
+bool RN2483Network::waitForOk()
 {
   readLine(buffer, sizeof(buffer));
   if (pgmstrcmp(buffer, CMP_OK) != 0)
@@ -937,7 +937,7 @@ bool TheThingsNetwork::waitForOk()
   return true;
 }
 
-bool TheThingsNetwork::sendChSet(uint8_t index, uint8_t channel, const char *value)
+bool RN2483Network::sendChSet(uint8_t index, uint8_t channel, const char *value)
 {
   clearReadBuffer();
   char ch[5];
@@ -967,7 +967,7 @@ bool TheThingsNetwork::sendChSet(uint8_t index, uint8_t channel, const char *val
   return waitForOk();
 }
 
-bool TheThingsNetwork::sendJoinSet(uint8_t type)
+bool RN2483Network::sendJoinSet(uint8_t type)
 {
   clearReadBuffer();
   debugPrint(F(SENDING));
@@ -979,7 +979,7 @@ bool TheThingsNetwork::sendJoinSet(uint8_t type)
   return waitForOk();
 }
 
-bool TheThingsNetwork::sendPayload(uint8_t mode, uint8_t port, uint8_t *payload, size_t length)
+bool RN2483Network::sendPayload(uint8_t mode, uint8_t port, uint8_t *payload, size_t length)
 {
   clearReadBuffer();
   debugPrint(F(SENDING));
@@ -1030,7 +1030,7 @@ bool TheThingsNetwork::sendPayload(uint8_t mode, uint8_t port, uint8_t *payload,
   return waitForOk();
 }
 
-void TheThingsNetwork::sleep(uint32_t mseconds)
+void RN2483Network::sleep(uint32_t mseconds)
 {
   if (mseconds < 100)
   {
@@ -1047,12 +1047,12 @@ void TheThingsNetwork::sleep(uint32_t mseconds)
   debugPrintLn(buffer);
 }
 
-void TheThingsNetwork::wake()
+void RN2483Network::wake()
 {
   autoBaud();
 }
 
-void TheThingsNetwork::linkCheck(uint16_t seconds)
+void RN2483Network::linkCheck(uint16_t seconds)
 {
   clearReadBuffer();
   debugPrint(SENDING);
@@ -1067,13 +1067,13 @@ void TheThingsNetwork::linkCheck(uint16_t seconds)
   waitForOk();
 }
 
-uint8_t TheThingsNetwork::getLinkCheckGateways()
+uint8_t RN2483Network::getLinkCheckGateways()
 {
   readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_GWNB, buffer, sizeof(buffer));
   return strtol(buffer, NULL, 10);
 }
 
-uint8_t TheThingsNetwork::getLinkCheckMargin()
+uint8_t RN2483Network::getLinkCheckMargin()
 {
   readResponse(MAC_TABLE, MAC_GET_SET_TABLE, MAC_MRGN, buffer, sizeof(buffer));
   return strtol(buffer, NULL, 10);

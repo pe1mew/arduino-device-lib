@@ -1,39 +1,75 @@
-// Copyright © 2017 The Things Network
-// Use of this source code is governed by the MIT license that can be found in the LICENSE file.
+/*--------------------------------------------------------------------
+  Original code: Copyright © 2017 The Things Network
+  Use of this source code is governed by the MIT license that can be 
+  found in the LICENSE file.
 
-#ifndef _THETHINGSNETWORK_H_
-#define _THETHINGSNETWORK_H_
+  Additions by Remko Welling (pe1mew@pe1mew.nl)
+
+  This code is distributed in the hope that it will be useful, but 
+  WITHOUT ANY WARRANTY; without even the implied warranty of 
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  --------------------------------------------------------------------*/
+
+/*!
+
+ \file RN2483Network.h
+ \brief Library to configure and use Microchip RN2483 with a LoRaWAN network
+ \date 18-12-2019
+ \author Remko Welling (pe1mew@pe1mew.nl)
+ \version See release history
+  
+ ## Release histroy
+ 
+ Version|Date        |Note
+ -------|------------|----
+ <      | 18-12-2019 | Initial fork from 
+        |            | 
+        |            | 
+        |            | 
+
+ Work progress
+ -------------
+ \todo Complete changing TheThingsnetwork class to a generic name
+ \todo Add doxygen comments
+ \todo make class inheritable by moving private to protected
+ 
+ */
+
+
+
+#ifndef _RN2483_NETWORK_H_
+#define _RN2483_NETWORK_H_
 
 #include <Arduino.h>
 #include <Stream.h>
 #if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_SAMD)
-#include <avr/pgmspace.h>
+    #include <avr/pgmspace.h>
 #else
-#include <pgmspace.h>
+    #include <pgmspace.h>
 #endif
 
-#define TTN_DEFAULT_SF 7
-#define TTN_DEFAULT_FSB 2
-#define TTN_RETX "7"
+#define LORAWAN_DEFAULT_SF 7
+#define LORAWAN_DEFAULT_FSB 2
+#define LORAWAN_RETX "7"
 
-#define TTN_PWRIDX_EU868 "1"
-#define TTN_PWRIDX_US915 "5"
-#define TTN_PWRIDX_AU915 "5"
-#define TTN_PWRIDX_AS920_923 "1" // TODO: should be 0, but the current RN2903AS firmware doesn't accept that value (probably still using EU868: 1=14dBm)
-#define TTN_PWRIDX_AS923_925 "1" // TODO: should be 0
-#define TTN_PWRIDX_KR920_923 "1" // TODO: should be 0
-#define TTN_PWRIDX_IN865_867 "1" // TODO: should be 0
+#define LORAWAN_PWRIDX_EU868 "1"
+#define LORAWAN_PWRIDX_US915 "5"
+#define LORAWAN_PWRIDX_AU915 "5"
+#define LORAWAN_PWRIDX_AS920_923 "1" // TODO: should be 0, but the current RN2903AS firmware doesn't accept that value (probably still using EU868: 1=14dBm)
+#define LORAWAN_PWRIDX_AS923_925 "1" // TODO: should be 0
+#define LORAWAN_PWRIDX_KR920_923 "1" // TODO: should be 0
+#define LORAWAN_PWRIDX_IN865_867 "1" // TODO: should be 0
 
-#define TTN_BUFFER_SIZE 300
+#define LORAWAN_BUFFER_SIZE 300
 
 typedef uint8_t port_t;
 
 enum ttn_response_t
 {
-  TTN_ERROR_SEND_COMMAND_FAILED = (-1),
-  TTN_ERROR_UNEXPECTED_RESPONSE = (-10),
-  TTN_SUCCESSFUL_TRANSMISSION = 1,
-  TTN_SUCCESSFUL_RECEIVE = 2
+  LORAWAN_ERROR_SEND_COMMAND_FAILED = (-1),
+  LORAWAN_ERROR_UNEXPECTED_RESPONSE = (-10),
+  LORAWAN_SUCCESSFUL_TRANSMISSION = 1,
+  LORAWAN_SUCCESSFUL_RECEIVE = 2
 };
 
 enum ttn_fp_t
@@ -47,7 +83,7 @@ enum ttn_fp_t
   TTN_FP_IN865_867
 };
 
-class TheThingsNetwork
+class RN2483Network
 {
 private:
   Stream *modemStream;
@@ -90,7 +126,7 @@ private:
 public:
   bool needsHardReset = false;
 
-  TheThingsNetwork(Stream &modemStream, Stream &debugStream, ttn_fp_t fp, uint8_t sf = TTN_DEFAULT_SF, uint8_t fsb = TTN_DEFAULT_FSB);
+  RN2483Network(Stream &modemStream, Stream &debugStream, ttn_fp_t fp, uint8_t sf = LORAWAN_DEFAULT_SF, uint8_t fsb = LORAWAN_DEFAULT_FSB);
   void reset(bool adr = true);
   void resetHard(uint8_t resetPin);
   void showStatus();
